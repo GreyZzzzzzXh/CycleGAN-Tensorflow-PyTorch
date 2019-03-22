@@ -26,14 +26,15 @@ with tf.Session() as sess:
     a_real = tf.placeholder(tf.float32, shape=[None, crop_size, crop_size, 3])
     b_real = tf.placeholder(tf.float32, shape=[None, crop_size, crop_size, 3])
 
-    a2b = models.generator(a_real, 'a2b')
-    b2a = models.generator(b_real, 'b2a')
-    b2a2b = models.generator(b2a, 'a2b')
-    a2b2a = models.generator(a2b, 'b2a')
+    a2b = models.generator(a_real, 'a2b', train=False)
+    b2a = models.generator(b_real, 'b2a', train=False)
+    b2a2b = models.generator(b2a, 'a2b', train=False)
+    a2b2a = models.generator(a2b, 'b2a', train=False)
 
     # retore
     try:
-        ckpt_path = utils.load_checkpoint('./outputs/checkpoints/' + dataset, sess)
+        utils.load_checkpoint('./outputs/checkpoints/' + dataset, sess)
+        tf.train.write_graph(sess.graph_def, './outputs/checkpoints/' + dataset, 'graph.pb', as_text=False)
     except:
         raise Exception('No checkpoint!')
 
