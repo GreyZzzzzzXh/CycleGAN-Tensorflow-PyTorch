@@ -12,11 +12,22 @@ conv = partial(slim.conv2d, activation_fn=None)
 deconv = partial(slim.conv2d_transpose, activation_fn=None)
 relu = tf.nn.relu
 lrelu = partial(tf.nn.leaky_relu, alpha=0.2)
-batch_norm = partial(slim.batch_norm, scale=True, decay=0.9, epsilon=1e-5, updates_collections=None)
 
 
-def discriminator(img, scope, dim=64, train=True):
-    bn = partial(batch_norm, is_training=train)
+def bn(inputs):
+    with tf.variable_scope("BatchNorm"):
+        inputs = tf.identity(inputs)
+        channels = inputs.get_shape()[3]
+        offset = tf.get_variable("offset", [channels], dtype=tf.float32, initializer=tf.zeros_initializer())
+        scale = tf.get_variable("scale", [channels], dtype=tf.float32, initializer=tf.random_normal_initializer(1.0, 0.02))
+        mean, variance = tf.nn.moments(inputs, axes=[0, 1, 2], keep_dims=False)
+        variance_epsilon = 1e-5
+        normalized = tf.nn.batch_normalization(inputs, mean, variance, offset, scale, variance_epsilon=variance_epsilon)
+
+        return normalized
+
+
+def discriminator(img, scope, dim=64):
     conv_bn_lrelu = partial(conv, normalizer_fn=bn, activation_fn=lrelu, biases_initializer=None)
 
     with tf.variable_scope(scope + '_discriminator', reuse=tf.AUTO_REUSE):
@@ -29,8 +40,7 @@ def discriminator(img, scope, dim=64, train=True):
         return net
 
 
-def generator(img, scope, dim=64, train=True):
-    bn = partial(batch_norm, is_training=train)
+def generator(img, scope, dim=64):
     conv_bn_relu = partial(conv, normalizer_fn=bn, activation_fn=relu, biases_initializer=None)
     deconv_bn_relu = partial(deconv, normalizer_fn=bn, activation_fn=relu, biases_initializer=None)
 
